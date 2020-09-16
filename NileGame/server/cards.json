@@ -1,0 +1,20 @@
+{
+    "cards": {
+        "Flax": 10,
+        "Papyrus": 10,
+        "Lettuce": 10,
+        "Castor": 10,
+        "Wheat": 10,
+        "Locusts": 1,
+        "Spec_Flax_Papyrus": 2,
+        "Spec_Flax_Lettuce": 2,
+        "Spec_Flax_Castor": 2,
+        "Spec_Flax_Wheat": 2,
+        "Spec_Papyrus_Lettuce": 2,
+        "Spec_Papyrus_Castor": 2,
+        "Spec_Papyrus_Wheat": 2,
+        "Spec_Lettuce_Castor": 2,
+        "Spec_Lettuce_Wheat": 2,
+        "Spec_Castor_Wheat": 2
+    }
+}

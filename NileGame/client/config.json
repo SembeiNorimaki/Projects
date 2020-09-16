@@ -1,0 +1,16 @@
+{
+  "CARD_W" : 90,
+  "CARD_H" : 126,
+  "HAND_X" : 10,
+  "HAND_Y" : 400,
+  "FLOOD_X" : 10,
+  "FLOOD_Y" : 100,
+  "STORAGE_X" : 100,
+  "STORAGE_Y" : 320,
+  "FIELD1_X" : 400,
+  "FIELD1_Y" : 100,
+  "FIELD2_X" : 700,
+  "FIELD2_Y" : 100,
+  "MAX_HAND" : 10,
+  "BGCOL" : 100
+}
