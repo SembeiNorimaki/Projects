@@ -1,0 +1,6 @@
+MarlinFirmware/*
+!MarlinFirmware/Marlin
+MarlinFirmware/Marlin/*
+!MarlinFirmware/Marlin/Configuration.h
+!MarlinFirmware/Marlin/Configuration_adv.h
+
