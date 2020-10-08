@@ -1,51 +1,48 @@
-#include "Arduino.h"
+// #include "Arduino.h"
 #include "Radar.h"
 
-//Radar::Radar() : pixels(NPIXELS, LEDS_PIN, NEO_GRB + NEO_KHZ800), serialGPS(GPS_RX, GPS_TX) { 
-Radar::Radar() : pixels(NPIXELS, LEDS_PIN, NEO_GRB + NEO_KHZ800), serialGPS(GPS_RX, GPS_TX){
+Radar::Radar() : pixels(NPIXELS, LEDS_PIN, NEO_RGB + NEO_KHZ800) {
 }
 
 void Radar::initialize() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
-    initializeTargets();
+    loadTargets();
     pixels.begin();
     compass.init();
     compass.setCalibration(-1463, 110, -48, 1396, -857, 0);
+    EEPROM.begin(2 * NTARGETS * sizeof(double));
 
-    #ifdef DEVICE_ESP01
-      serialGPS.begin(GPS_BAUD, SWSERIAL_8N1, GPS_RX, GPS_TX, false, 95, 11);
-    #endif
-    #ifdef DEVICE_ESP32
-      serialGPS.begin(GPS_BAUD, SWSERIAL_8N1, GPS_RX, GPS_TX, false, 95, 11);
-    #endif
-    #ifdef DEVICE_ARDUINO
-      serialGPS.begin(GPS_BAUD);
-    #endif
-    Serial << "Ready" << endl;
+    //Serial.begin(9600);  // Serial is used for GPS
+    serialBT.begin("DragonBallRadar");
+
+    delay(5000);
+    serialBT << "Ready" << endl;
 }
 
-void Radar::initializeTargets() {
-    setTarget(0, 47.393890, 8.520015);
-}
-
-void Radar::update(bool debug) {
-    scan();
-    if (debug) {
-        Serial << "My location: (" << _FLOAT(MyPosition[0], 6) << ", " 
-                                   << _FLOAT(MyPosition[1], 6) << ")" << endl;
-        for(int i=0; i<NTARGETS; i++) {
-            Serial << "Target " << i << ":    (" 
-                   << _FLOAT(targets[i].latitude, 6) << ", " 
-                   << _FLOAT(targets[i].longitude, 6) << ")" << endl;
-            Serial << "Distance: " << targets[i].distance 
-                   << " Angle: " << targets[i].angle 
-                   << " AngleCorr: " << targets[i].angleCorrected  
-                   << " LedId: " << targets[i].ledId << endl;
-        }
-        Serial << "Compass Angle: " << compassAngle << endl;
-        Serial << "************************" << endl;
+void Radar::loadTargets() {
+    // Loads the targets from the EEPROM
+    int addr = 0;
+    double lat, lon;
+    for (int i=0; i<NTARGETS; i++) {
+        EEPROM.get(addr, lat);
+        addr += sizeof(double);
+        EEPROM.get(addr, lon);
+        addr += sizeof(double);
+        setTarget(i, lat, lon);
     }
-    delay(100);
+}
+
+void Radar::storeTarget(int id, double lat, double lon) {
+    // Stores a target into the EEPROM
+    // each target stores latitude and longitude as double
+    // id: 0 -> addr: 0
+    // id: 1 -> addr: 2*sizeof(double)
+    // id: 2 -> addr: 4*sizeof(double)
+
+    int addr = id * 2 * sizeof(double);
+    EEPROM.put(addr, lat);
+    addr += sizeof(double);
+    EEPROM.put(addr, lon);
 }
 
 void Radar::setTarget(int id, double lat, double lon) {
@@ -56,6 +53,26 @@ void Radar::setTarget(int id, double lat, double lon) {
         MyPosition[0], MyPosition[1], lat, lon);
     targets[id].angle = TinyGPSPlus::courseTo(
         MyPosition[0], MyPosition[1], lat, lon);
+}
+
+void Radar::update(bool debug) {
+    scan();
+    if (debug) {
+        serialBT << "My location: (" << _FLOAT(MyPosition[0], 6) << ", " 
+                                     << _FLOAT(MyPosition[1], 6) << ")" << endl;
+        for(int i=0; i<NTARGETS; i++) {
+            serialBT << "Target " << i << ":    (" 
+                     << _FLOAT(targets[i].latitude, 6) << ", " 
+                     << _FLOAT(targets[i].longitude, 6) << ")" << endl;
+            serialBT << "Distance: " << targets[i].distance 
+                     << " Angle: " << targets[i].angle 
+                     << " AngleCorr: " << targets[i].angleCorrected  
+                     << " LedId: " << targets[i].ledId << endl;
+        }
+        serialBT << "Compass Angle: " << compassAngle << endl;
+        serialBT << "************************" << endl;
+    }
+    delay(100);
 }
 
 // OK
@@ -83,17 +100,18 @@ void Radar::updateLedId(int targetId, int distance, int angle_) {
         ledIdAux = 0;
     }
     targets[targetId].ledId = ledIdAux + OFFSET_RINGS[ringId];
-    // Serial << "Ringid: " << ringId 
-    //        << " ledIdAux: " << ledIdAux 
-    //        << " ledId: " << targets[targetId].ledId << endl;
+    // serialBT << "Ringid: " << ringId 
+    //          << " ledIdAux: " << ledIdAux 
+    //          << " ledId: " << targets[targetId].ledId << endl;
 }
 
+// What happens when millis() overflow?
 void Radar::updateGpsLocation() {
     // read gps and update the position
-    // while (SerialGPS.available() > 0) {
-    //     gps.encode(SerialGPS.read());
-    //     //yield();
-    // }
+    while (Serial.available() > 0) {
+        gps.encode(Serial.read());
+        yield();  // not sure if yield here will make it not work
+    }
     if (gps.location.isUpdated()) {
         MyPosition[0] = gps.location.lat();
         MyPosition[1] = gps.location.lng();
@@ -106,9 +124,9 @@ void Radar::updateGpsLocation() {
                 MyPosition[0], MyPosition[1], targets[i].latitude, targets[i].longitude);
         }
 
-        // Serial << "Lat: " << _FLOAT(MyPosition[0], 6) 
-        //        << " Lon: " << _FLOAT(MyPosition[1], 6) 
-        //        << " Nsat: " << gps.satellites.value() << endl;
+        // serialBT << "Lat: " << _FLOAT(MyPosition[0], 6) 
+        //          << " Lon: " << _FLOAT(MyPosition[1], 6) 
+        //          << " Nsat: " << gps.satellites.value() << endl;
     }
 }
 
@@ -125,8 +143,7 @@ void Radar::scan() {
     // otherwise set angle to 0 so radar acts in cardinal mode
     if ((compassAngle < 0) || (compassAngle >= 360)) {
         compassAngle = 0;
-        Serial << "Error reading Compass" << endl;
-        delay(500);
+        //serialBT << "Error reading Compass" << endl;
     }
     // update ledID for all targets
     for (int i=0; i<NTARGETS; i++) {
@@ -143,10 +160,14 @@ void Radar::scan() {
     blinkLed();
 }
 
+// What happens when millis() overflow?
 void Radar::blinkLed() {  
     if (millis() - last_blink_ms > BLINK_MS) {
         if (ledStatus) {
             pixels.clear();
+            // for(int i=0; i<NPIXELS; i++) {
+            //     pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+            // }
             pixels.show();
             ledStatus = false;
         } else {
@@ -164,28 +185,107 @@ void Radar::blinkLed() {
     }
 }
 
+
+/***************** TEST FUNCTIONS *********************/
+
 void Radar::testLeds() {
     for(int dist=450; dist>0; dist -= 100) { // 10
         for(int angle=0; angle<360; angle+=10) {  // 36
-            Serial << "Dist: " << dist << " Angle: " << angle << endl;
+            //serialBT << "Dist: " << dist << " Angle: " << angle << endl;
             updateLedId(0, dist, angle);
             pixels.setPixelColor(targets[0].ledId, pixels.Color(0, 40, 0));  // green 
             pixels.show();
             delay(500);
             pixels.clear();
+            // for(int i=0; i<NPIXELS; i++) {
+            //     pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+                
+            //     //delay(10);
+            // }
             pixels.show();
+            
+            delay(500);
         }
     }
 }
 
 void Radar::testGps() {
-    while (serialGPS.available() > 0) {
-        Serial.write(serialGPS.read());
+    while (Serial.available() > 0) {
+        serialBT.write(Serial.read());
     }
 }
 
 void Radar::testCompass() {
     compass.read();
-    Serial << "Azimuth: " << compass.getAzimuth() << endl;
+    serialBT << "Azimuth: " << compass.getAzimuth() << endl;
     delay(500); 
+}
+
+void Radar::testEeprom() {
+    double wLat = 47.384198;
+    double wLon = 8.508892;
+    double rLat, rLon; 
+    int addr = 0;
+
+    EEPROM.put(addr, wLat);
+    addr += sizeof(double);
+    EEPROM.put(addr, wLon);
+    
+    EEPROM.commit();
+    delay(200);
+
+    addr = 0;
+    EEPROM.get(addr, rLat);
+    addr += sizeof(double);
+    EEPROM.get(addr, rLon);
+
+    serialBT << "Written: (" << _FLOAT(wLat, 6) << ", " << _FLOAT(wLon, 6) << ")" << endl; 
+    serialBT << "Read:    (" << _FLOAT(rLat, 6) << ", " << _FLOAT(rLon, 6) << ")" << endl; 
+}
+
+void Radar::testParser() {
+    //String JSONMessage = serialBT.readString();
+   
+    DynamicJsonDocument doc(1024);
+    char json[] = "{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}";
+
+    DeserializationError error = deserializeJson(doc, json);
+
+    // Test if parsing succeeds.
+    if (error) {
+        serialBT.print(F("deserializeJson() failed: "));
+        serialBT.println(error.c_str());
+        return;
+    }
+
+    // Fetch values.
+    //
+    // Most of the time, you can rely on the implicit casts.
+    // In other case, you can do doc["time"].as<long>();
+    const char* sensor = doc["sensor"];
+    long time = doc["time"];
+    double latitude = doc["data"][0];
+    double longitude = doc["data"][1];
+
+    // Print values.
+    serialBT.println(sensor);
+    serialBT.println(time);
+    serialBT.println(latitude, 6);
+    serialBT.println(longitude, 6);
+}
+
+void Radar::test() {
+    if (testId == 0) {
+        testGps();
+    } else if (testId == 1) {
+        testCompass();
+    } else if (testId == 2) {
+        testLeds();
+    } else {
+        serialBT << "Unknown command" << endl;
+    }
+
+    while (serialBT.available() > 0) {
+        testId = serialBT.read() - '0';
+    }
 }
