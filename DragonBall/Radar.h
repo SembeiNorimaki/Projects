@@ -18,9 +18,16 @@
 #define FEED_NAME "gps"
 #define NPIXELS 61
 #define NRINGS 5
-#define NTARGETS 1
+//#define NTARGETS 3
 #define BLINK_MS 500      // time on/off, period = BLINK_MS * 2
 #define GPS_MS   300000   // update gps location every GPS_MS 
+#define DISPLAY_MS 10000
+#define LONGPRESS_MS 5000
+#define BT_TIMEOUT_MS 30000
+
+#define M_NORMAL 1
+#define M_BLUETOOTH 2
+
 
 typedef struct {
     double latitude;
@@ -45,6 +52,12 @@ class Radar {
         void testEeprom();
         void testParser();
 
+        void storeTarget(int id, double lat, double lon);
+        void setTarget(int id, double lat, double lon);
+        void loadTargets();
+        void sendTargets();
+        void bluetoothCommunication();
+
     private:
         // Devices
         QMC5883LCompass compass;
@@ -53,19 +66,25 @@ class Radar {
         BluetoothSerial serialBT;
         
         // Methods
-        void setTarget(int id, double lat, double lon);
-        void storeTarget(int id, double lat, double lon);
-        void loadTargets();
-
+        void onButtonPress();
+        void onButtonRelease();
         void updateGpsLocation();
         void scan();
         void blinkLed();
         void updateLedId(int targetId, int distance, int angle_);
         int distance2ring(int distance);
+        void decodeRX();
+        void btLedSeq(int ringId);
+        
         
         // Variables
+        int mode = M_NORMAL;
         unsigned int last_gps_ms = 0;
         unsigned int last_blink_ms = 0;
+        unsigned int last_press_ms = 0;
+
+        bool buttonPressed = false;
+        bool displayON = false;
         
         int compassAngle = 0;
         bool compassEnabled = true; // true: compass mode
@@ -74,11 +93,13 @@ class Radar {
         bool showUnreachable = false; // true: unreachable targets shown in red
                                       // false: unreachable targets hidden
 
-        bool ledStatus = false;        
+        bool ledStatus = false; 
+        int NTARGETS = 3;
+        
         int RINGS[NRINGS] =       {24, 16, 12,  8,  1};
         int OFFSET_RINGS[NRINGS] = {0, 24, 40, 52, 60};
         int RING_MAX_DIST[NRINGS] = {90, 70, 50, 30, 10};
-        Target targets[NTARGETS]; 
+        Target targets[3];   //TODO: Hack. Fix it
         double MyPosition[2] = {47.383890, 8.510015};
 
         int testId = 0;

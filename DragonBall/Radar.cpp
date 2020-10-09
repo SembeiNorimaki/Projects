@@ -1,4 +1,3 @@
-// #include "Arduino.h"
 #include "Radar.h"
 
 Radar::Radar() : pixels(NPIXELS, LEDS_PIN, NEO_RGB + NEO_KHZ800) {
@@ -6,17 +5,82 @@ Radar::Radar() : pixels(NPIXELS, LEDS_PIN, NEO_RGB + NEO_KHZ800) {
 
 void Radar::initialize() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
-    loadTargets();
-    pixels.begin();
-    compass.init();
-    compass.setCalibration(-1463, 110, -48, 1396, -857, 0);
+    // attachInterrupt(2, (void (*)())(&onButtonPress), 1);
+    // attachInterrupt(2, Radar::onButtonRelease, 1);
+
+    // loadTargets();
+    // pixels.begin();
+    // compass.init();
+    // compass.setCalibration(-1463, 110, -48, 1396, -857, 0);
     EEPROM.begin(2 * NTARGETS * sizeof(double));
 
     //Serial.begin(9600);  // Serial is used for GPS
-    serialBT.begin("DragonBallRadar");
+    // serialBT.begin("DragonBallRadar");
 
-    delay(5000);
-    serialBT << "Ready" << endl;
+    //delay(10000);
+    // serialBT << "Ready" << endl;
+}
+
+void Radar::btLedSeq(int ringId) {
+    // set all pixels in the current ring
+    pixels.clear();
+    for (int i=OFFSET_RINGS[ringId]; i<OFFSET_RINGS[ringId]+RINGS[ringId]-1; i++) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 40));  // blue
+    }
+    pixels.show();
+}
+
+void Radar::bluetoothCommunication() {  
+    // 1. initialize the bluetooth port
+    mode = M_BLUETOOTH;
+    serialBT.begin("DragonBallRadar");
+    int start_bluetooth_ms = millis();
+    
+    int ringId = 0;
+    unsigned long last_led_change_ms = millis();
+    String rx = "";
+
+    while(rx != "pong") {
+        // Timeout
+        if (millis() - start_bluetooth_ms > BT_TIMEOUT_MS) {
+            serialBT << "Timed out" << endl;
+            delay(100);
+            serialBT.end();
+            mode = M_NORMAL;
+            return;
+        }
+        // led wave figure
+        if (millis() - last_led_change_ms > 1000) {
+            serialBT << "ping" << endl;
+            btLedSeq(ringId++);
+            if (ringId >= NRINGS)
+                ringId = 0;
+            last_led_change_ms = millis();
+        }
+        
+        // 2. Wait until it receives pong
+        while (serialBT.available() > 0) {
+             rx += serialBT.readString();
+        }
+    }
+    sendTargets();
+    //serialBT << "Success" << endl;
+    delay(100);
+    // 3. Process the data
+    //decodeRX();
+    // 4. Disable bluetooth
+    serialBT.end();
+    mode = M_NORMAL;
+}
+
+void IRAM_ATTR Radar::onButtonPress() {
+    buttonPressed = true;
+    displayON = true;
+    last_press_ms = millis();
+}
+
+void IRAM_ATTR Radar::onButtonRelease() {
+    buttonPressed = false;
 }
 
 void Radar::loadTargets() {
@@ -43,6 +107,8 @@ void Radar::storeTarget(int id, double lat, double lon) {
     EEPROM.put(addr, lat);
     addr += sizeof(double);
     EEPROM.put(addr, lon);
+    EEPROM.commit();
+    delay(10);
 }
 
 void Radar::setTarget(int id, double lat, double lon) {
@@ -55,7 +121,49 @@ void Radar::setTarget(int id, double lat, double lon) {
         MyPosition[0], MyPosition[1], lat, lon);
 }
 
+void Radar::sendTargets() {
+    StaticJsonDocument<200> doc;
+    for (int i=0; i<NTARGETS; i++) {
+        JsonArray data = doc.createNestedArray(String(i));
+        data.add(targets[i].latitude);
+        data.add(targets[i].longitude);
+    }
+    serializeJson(doc, serialBT);
+}
+
+void Radar::decodeRX() {
+    char dataRx[] = "{\"numTargets\": 3,\"targets\":[[11,22],[33,44],[55,66]]}";
+    DynamicJsonDocument doc(1000);
+    DeserializationError error = deserializeJson(doc, dataRx);
+
+    // Test if parsing succeeds.
+    if (error) {
+        serialBT.print(F("deserializeJson() failed: "));
+        serialBT.println(error.c_str());
+        return;
+    }
+
+    int n = doc["numTargets"];
+    for (int i=0; i<n; i++) {
+        double lat = doc["targets"][i][0];
+        double lon = doc["targets"][i][1];
+    }
+}
+
 void Radar::update(bool debug) {
+    if (!displayON) {
+        return;
+    }
+    if ((buttonPressed) && (millis() - last_press_ms > LONGPRESS_MS)) {
+        // We have pressed the button for longer than LONGPRESS_MS
+        // Enter DEBUG or PAIRING MODE
+
+    }
+    if (millis() - last_press_ms > DISPLAY_MS) {
+        displayON = false;
+        return;
+    }
+    
     scan();
     if (debug) {
         serialBT << "My location: (" << _FLOAT(MyPosition[0], 6) << ", " 
@@ -75,7 +183,6 @@ void Radar::update(bool debug) {
     delay(100);
 }
 
-// OK
 int Radar::distance2ring(int distance) {
     // target out of range returns outer ring
     if (distance > RING_MAX_DIST[0])  
@@ -90,7 +197,6 @@ int Radar::distance2ring(int distance) {
     return NRINGS-1; 
 }
 
-// OK
 void Radar::updateLedId(int targetId, int distance, int angle_) {
     // angle must be in the range [0..360)
     int ringId = distance2ring(distance);
@@ -105,7 +211,6 @@ void Radar::updateLedId(int targetId, int distance, int angle_) {
     //          << " ledId: " << targets[targetId].ledId << endl;
 }
 
-// What happens when millis() overflow?
 void Radar::updateGpsLocation() {
     // read gps and update the position
     while (Serial.available() > 0) {
@@ -160,7 +265,6 @@ void Radar::scan() {
     blinkLed();
 }
 
-// What happens when millis() overflow?
 void Radar::blinkLed() {  
     if (millis() - last_blink_ms > BLINK_MS) {
         if (ledStatus) {
