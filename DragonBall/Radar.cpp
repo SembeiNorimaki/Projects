@@ -1,31 +1,256 @@
-#include "Radar.h"
+/* Radar sequence:
+*  - When powered on:
+*    - Wait for GPS signal
+*    - Check compass
+*
+*
+*/
 
-Radar::Radar() : pixels(NPIXELS, LEDS_PIN, NEO_RGB + NEO_KHZ800) {
+#include "Radar.h"
+//#include "GPS.h"
+//#include "Compass.h"
+
+Radar::Radar() : pixels(NPIXELS, LEDS_PIN, NEO_GRB + NEO_KHZ800) {
 }
 
+void Radar::readBatteryLevel() {
+    int batLevel = analogRead(BATLEV_PIN);
+
+}
+
+void Radar::compassInit() {
+    compass.init();
+    
+    // get the compass calibration values from the EEPROM
+    int xMin, xMax, yMin, yMax, zMin, zMax;
+    EEPROM.get(COMPASS_ADDR, xMin);
+    EEPROM.get(COMPASS_ADDR + sizeof(int), xMax);
+    EEPROM.get(COMPASS_ADDR + 2*sizeof(int), yMin);
+    EEPROM.get(COMPASS_ADDR + 3*sizeof(int), yMax);
+    EEPROM.get(COMPASS_ADDR + 4*sizeof(int), zMin);
+    EEPROM.get(COMPASS_ADDR + 5*sizeof(int), zMax);
+    
+    compass.setCalibration(xMin, xMax, yMin, yMax, zMin, zMax);
+
+    // Check the compass, recalibrate if needed
+    while(!compassCheck())
+        calibrateCompass();
+}
+
+bool Radar::compassCheck() {
+    // Very easy check of the compass range
+    // User moves the compass and we classify the returned Azimuth in one bin
+    // If all bins are filled the compass passes the check
+    // If 1+ bin is never filled the function will timeout and the check will fail
+    bool bins[36];
+    bool done = false;
+    int angle;
+    int bin;
+    unsigned long startTime = millis();
+    int timeout_ms = 30000;
+
+    while(!done && (millis() - startTime < timeout_ms)) { 
+        compass.read();
+        angle = compass.getAzimuth();
+        if (angle < 0) {
+            serialBT << "Error, compass angle is " << angle << endl;
+            angle = 0;
+        } else if (angle >= 360) {
+            serialBT << "Error, compass angle is " << angle << endl;
+            angle = 359;
+        }
+
+        bin = angle / 10;
+        bins[bin] = true;
+        
+        done = true;
+        for (int i=0; i<36; i++) {
+            if (!bins[i]) {
+                done = false;
+                break;
+            }
+        }
+    }
+    return done;
+}
+
+void Radar::calibrateCompass() {
+    int calibrationData[3][2];
+    bool changed = false;
+    bool done = false;
+    int t = 0;
+    int c = 0;
+    int x, y, z;
+
+    while(!done) {    
+        // Read compass values
+        compass.read();
+
+        // Return XYZ readings
+        x = compass.getX();
+        y = compass.getY();
+        z = compass.getZ();
+
+        changed = false;
+        if(x < calibrationData[0][0]) {
+            calibrationData[0][0] = x;
+            changed = true;
+        }
+        if(x > calibrationData[0][1]) {
+            calibrationData[0][1] = x;
+            changed = true;
+        }
+        if(y < calibrationData[1][0]) {
+            calibrationData[1][0] = y;
+            changed = true;
+        }
+        if(y > calibrationData[1][1]) {
+            calibrationData[1][1] = y;
+            changed = true;
+        }
+        if(z < calibrationData[2][0]) {
+            calibrationData[2][0] = z;
+            changed = true;
+        }
+        if(z > calibrationData[2][1]) {
+            calibrationData[2][1] = z;
+            changed = true;
+        }
+
+        if (changed && !done) {
+            serialBT << "Calibrating... Keep moving your sensor around." << endl;
+            c = millis();
+        }
+        t = millis();
+        
+        if ( (t - c > 5000) && !done) {
+            done = true;
+        }
+    }
+    serialBT << "Calibration finished:" << endl;
+    serialBT << "  " << calibrationData[0][0] << ", " << calibrationData[0][1] << endl;
+    serialBT << "  " << calibrationData[1][0] << ", " << calibrationData[1][1] << endl;
+    serialBT << "  " << calibrationData[2][0] << ", " << calibrationData[2][1] << endl;
+    
+    compass.setCalibration(
+        calibrationData[0][0], calibrationData[0][1],
+        calibrationData[1][0], calibrationData[1][1],
+        calibrationData[2][0], calibrationData[2][1]);
+
+    // save calibration parameters to EEPROM
+    EEPROM.get(COMPASS_ADDR, calibrationData[0][0]);
+    EEPROM.get(COMPASS_ADDR + sizeof(int), calibrationData[0][1]);
+    EEPROM.get(COMPASS_ADDR + 2*sizeof(int), calibrationData[1][0]);
+    EEPROM.get(COMPASS_ADDR + 3*sizeof(int), calibrationData[1][1]);
+    EEPROM.get(COMPASS_ADDR + 4*sizeof(int), calibrationData[2][0]);
+    EEPROM.get(COMPASS_ADDR + 5*sizeof(int), calibrationData[2][1]);
+    EEPROM.commit();
+}
+
+// TODO: attachInterrupt doesn't work
 void Radar::initialize() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     // attachInterrupt(2, (void (*)())(&onButtonPress), 1);
     // attachInterrupt(2, Radar::onButtonRelease, 1);
 
-    // loadTargets();
-    // pixels.begin();
-    // compass.init();
-    // compass.setCalibration(-1463, 110, -48, 1396, -857, 0);
+    pixels.begin();
+    
+    if (compassEnabled)
+        compassInit();
+
     EEPROM.begin(2 * NTARGETS * sizeof(double));
+    loadTargets();
 
-    //Serial.begin(9600);  // Serial is used for GPS
-    // serialBT.begin("DragonBallRadar");
+    Serial.begin(9600);  // Serial is used for GPS
 
-    //delay(10000);
-    // serialBT << "Ready" << endl;
+#ifdef DEBUG
+    serialBT.begin("DragonBallRadar");
+    delay(5000);
+    serialBT << "Ready" << endl;
+#endif
+
+    waitGpsSignal();
+    
 }
 
-void Radar::btLedSeq(int ringId) {
+void Radar::successLeds() {
+    for (int i=0; i<5; i++) {
+        for(int i=0; i<NPIXELS; i++) {
+            pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+            delay(1);
+        }
+        pixels.show();
+        delay(200);
+        for(int i=0; i<NPIXELS; i++) {
+            pixels.setPixelColor(i, C_GREEN);
+            delay(1);
+        }
+        pixels.show();
+        delay(200);
+    }
+}
+
+void Radar::failureLeds() {
+    for (int i=0; i<5; i++) {
+        for(int i=0; i<NPIXELS; i++) {
+            pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+            delay(1);
+        }
+        pixels.show();
+        delay(200);
+        for(int i=0; i<NPIXELS; i++) {
+            pixels.setPixelColor(i, C_RED);
+            delay(1);
+        }
+        pixels.show();
+        delay(200);
+    }
+}
+
+void Radar::waitGpsSignal() {
+    // We wait until the GPS returns a valid signal
+    mode = M_BLUETOOTH;
+    bool gpsFound = false;
+    unsigned long start_gps_ms = millis();
+    unsigned long last_led_change_ms = millis();
+    int ringId = NRINGS-1;
+
+    while(!gpsFound) {
+        // Timeout
+        if (millis() - start_gps_ms > GPS_TIMEOUT_MS) {
+            serialBT << "Timed out" << endl;
+            delay(100);
+            mode = M_NORMAL;
+            failureLeds();
+            return;
+        }
+        // led wave figure
+        if (millis() - last_led_change_ms > 500) {
+            serialBT << "ping" << endl;
+            waveLedSeq(ringId--, C_YELLOW);
+            if (ringId < 0)
+                ringId = NRINGS-1;
+            last_led_change_ms = millis();
+        }
+        gpsFound = updateGpsLocation();
+        delay(100);
+    }
+    successLeds();
+    serialBT << "MyPosition: " << MyPosition[0] << ", " << MyPosition[1] << endl;
+
+    mode = M_NORMAL;
+}
+
+void Radar::waveLedSeq(int ringId, uint32_t ledColor) {
     // set all pixels in the current ring
-    pixels.clear();
-    for (int i=OFFSET_RINGS[ringId]; i<OFFSET_RINGS[ringId]+RINGS[ringId]-1; i++) {
-        pixels.setPixelColor(i, pixels.Color(0, 0, 40));  // blue
+    for(int i=0; i<NPIXELS; i++) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+        delay(1);
+    }
+    pixels.show();
+    for (int i=OFFSET_RINGS[ringId]; i<OFFSET_RINGS[ringId]+RINGS[ringId]; i++) {
+        pixels.setPixelColor(i, ledColor);
+        delay(1);
     }
     pixels.show();
 }
@@ -34,27 +259,33 @@ void Radar::bluetoothCommunication() {
     // 1. initialize the bluetooth port
     mode = M_BLUETOOTH;
     serialBT.begin("DragonBallRadar");
-    int start_bluetooth_ms = millis();
+    unsigned long last_bluetooth_ms = millis();
     
-    int ringId = 0;
+    int ringId = NRINGS-1;
     unsigned long last_led_change_ms = millis();
     String rx = "";
 
+    // we need to receive "pong" as a handshake
     while(rx != "pong") {
         // Timeout
-        if (millis() - start_bluetooth_ms > BT_TIMEOUT_MS) {
+        if (millis() - last_bluetooth_ms > BT_TIMEOUT_MS) {
             serialBT << "Timed out" << endl;
             delay(100);
             serialBT.end();
+            for(int i=0; i<NPIXELS; i++) {
+                pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+                delay(1);
+            }
+            pixels.show();
             mode = M_NORMAL;
             return;
         }
         // led wave figure
-        if (millis() - last_led_change_ms > 1000) {
+        if (millis() - last_led_change_ms > 500) {
             serialBT << "ping" << endl;
-            btLedSeq(ringId++);
-            if (ringId >= NRINGS)
-                ringId = 0;
+            waveLedSeq(ringId--, C_BLUE);
+            if (ringId < 0)
+                ringId = NRINGS-1;
             last_led_change_ms = millis();
         }
         
@@ -70,6 +301,11 @@ void Radar::bluetoothCommunication() {
     //decodeRX();
     // 4. Disable bluetooth
     serialBT.end();
+    for(int i=0; i<NPIXELS; i++) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+        delay(1);
+    }
+    pixels.show();
     mode = M_NORMAL;
 }
 
@@ -151,15 +387,14 @@ void Radar::decodeRX() {
 }
 
 void Radar::update(bool debug) {
-    if (!displayON) {
+    if (!displayAlwaysON && !displayON) {
         return;
     }
     if ((buttonPressed) && (millis() - last_press_ms > LONGPRESS_MS)) {
         // We have pressed the button for longer than LONGPRESS_MS
-        // Enter DEBUG or PAIRING MODE
-
+        bluetoothCommunication();
     }
-    if (millis() - last_press_ms > DISPLAY_MS) {
+    if ((!displayAlwaysON) &&  (millis() - last_press_ms > DISPLAY_MS)) {
         displayON = false;
         return;
     }
@@ -180,7 +415,7 @@ void Radar::update(bool debug) {
         serialBT << "Compass Angle: " << compassAngle << endl;
         serialBT << "************************" << endl;
     }
-    delay(100);
+    //delay(100);
 }
 
 int Radar::distance2ring(int distance) {
@@ -211,7 +446,7 @@ void Radar::updateLedId(int targetId, int distance, int angle_) {
     //          << " ledId: " << targets[targetId].ledId << endl;
 }
 
-void Radar::updateGpsLocation() {
+bool Radar::updateGpsLocation() {
     // read gps and update the position
     while (Serial.available() > 0) {
         gps.encode(Serial.read());
@@ -220,6 +455,7 @@ void Radar::updateGpsLocation() {
     if (gps.location.isUpdated()) {
         MyPosition[0] = gps.location.lat();
         MyPosition[1] = gps.location.lng();
+        serialBT << "My Position: " << MyPosition[0] << ", " << MyPosition[1] << endl; 
 
         // recalculate distances and angles to all targets
         for (int i=0; i<NTARGETS; i++) {
@@ -232,7 +468,9 @@ void Radar::updateGpsLocation() {
         // serialBT << "Lat: " << _FLOAT(MyPosition[0], 6) 
         //          << " Lon: " << _FLOAT(MyPosition[1], 6) 
         //          << " Nsat: " << gps.satellites.value() << endl;
+        return true;
     }
+    return false;
 }
 
 void Radar::scan() {
@@ -263,23 +501,27 @@ void Radar::scan() {
         updateLedId(i, targets[i].distance, targets[i].angleCorrected);
     }
     blinkLed();
+    // serialBT << "Led 0: " << targets[0].ledId << endl;
 }
 
 void Radar::blinkLed() {  
     if (millis() - last_blink_ms > BLINK_MS) {
         if (ledStatus) {
-            pixels.clear();
-            // for(int i=0; i<NPIXELS; i++) {
-            //     pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-            // }
+            for(int i=0; i<NPIXELS; i++) {
+                pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+                delay(1);
+            }
             pixels.show();
+            delay(10);
             ledStatus = false;
         } else {
             for (int i=0; i<NTARGETS; i++) {
                 if (showUnreachable && (targets[i].distance >= RING_MAX_DIST[0])) {
                     pixels.setPixelColor(targets[i].ledId, pixels.Color(40, 0, 0));  // red
+                    delay(10);
                 } else {
                     pixels.setPixelColor(targets[i].ledId, pixels.Color(0, 40, 0));  // green
+                    delay(10);
                 }
             }
             pixels.show();
