@@ -10,31 +10,158 @@
 //#include "GPS.h"
 //#include "Compass.h"
 
+/***************** Main functions *************/
 Radar::Radar() : pixels(NPIXELS, LEDS_PIN, NEO_GRB + NEO_KHZ800) {
 }
 
-void Radar::readBatteryLevel() {
-    int batLevel = analogRead(BATLEV_PIN);
 
+void Radar::initialize(bool displayAlwaysON_, 
+                       bool compassEnabled_,
+                       bool gpsEnabled_,
+                       bool showUnreachable_) {
+
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+    // TODO: attachInterrupt doesn't work
+    // attachInterrupt(2, (void (*)())(&onButtonPress), 1);
+    // attachInterrupt(2, Radar::onButtonRelease, 1);
+
+    displayAlwaysON = displayAlwaysON_;
+    compassEnabled = compassEnabled_;
+    gpsEnabled = gpsEnabled_;
+    showUnreachable = showUnreachable_;
+
+    serialBT.begin("DragonBallRadar");
+    delay(5000);
+    serialBT << "Connection established." << endl;
+
+    // Pixels initialization
+    serialBT << "Initializing pixels... ";
+    pixels.begin();
+    serialBT << "done." << endl;
+    
+    // Compass initialization
+    if (compassEnabled) {
+        serialBT << "Initializing compass... " << endl;
+        compassInit();
+        serialBT << "done." << endl;
+    }
+
+    // Targets initialization
+    serialBT << "Initializing targets... ";
+    EEPROM.begin(2 * NTARGETS * sizeof(double));
+    loadTargets();
+    serialBT << "done." << endl;
+
+    // GPS initialization
+    if (gpsEnabled) {
+        serialBT << "Initializing GPS... ";
+        gpsInit();
+        serialBT << "done." << endl;
+    }
 }
 
+void Radar::update(bool debug) {
+    if (!displayAlwaysON && !displayON) {
+        return;
+    }
+    if ((buttonPressed) && (millis() - last_press_ms > LONGPRESS_MS)) {
+        // We have pressed the button for longer than LONGPRESS_MS
+        bluetoothCommunication();
+    }
+    if ((!displayAlwaysON) &&  (millis() - last_press_ms > DISPLAY_MS)) {
+        displayON = false;
+        return;
+    }
+    
+    scan();
+    if (debug) {
+        serialBT << "My location: (" << _FLOAT(MyPosition[0], 6) << ", " 
+                                     << _FLOAT(MyPosition[1], 6) << ")" << endl;
+        for(int i=0; i<NTARGETS; i++) {
+            serialBT << "Target " << i << ":    (" 
+                     << _FLOAT(targets[i].latitude, 6) << ", " 
+                     << _FLOAT(targets[i].longitude, 6) << ")" << endl;
+            serialBT << "Distance: " << targets[i].distance 
+                     << " Angle: " << targets[i].angle 
+                     << " AngleCorr: " << targets[i].angleCorrected  
+                     << " LedId: " << targets[i].ledId << endl;
+        }
+        serialBT << "Compass Angle: " << compassAngle << endl;
+        serialBT << "************************" << endl;
+    }
+    //delay(100);
+}
+
+esp_err_t do_firmware_upgrade() {
+    esp_http_client_config_t config = {
+        .url = CONFIG_FIRMWARE_UPGRADE_URL,
+        .cert_pem = (char *)server_cert_pem_start,
+    };
+    esp_err_t ret = esp_https_ota(&config);
+    if (ret == ESP_OK) {
+        esp_restart();
+    } else {
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
+void Radar::scan() {
+    // update gps if needed
+    if (millis() - last_gps_ms > GPS_MS) {
+        Radar::updateGpsLocation();
+        last_gps_ms = millis();
+    }
+    // update compassAngle
+    compass.read();
+    compassAngle = compass.getAzimuth();
+    // check that compassAngle is in the range [0, 360)
+    // otherwise set angle to 0 so radar acts in cardinal mode
+    if ((compassAngle < 0) || (compassAngle >= 360)) {
+        compassAngle = 0;
+        //serialBT << "Error reading Compass" << endl;
+    }
+    // update ledID for all targets
+    for (int i=0; i<NTARGETS; i++) {
+        if (compassEnabled) {
+            targets[i].angleCorrected = targets[i].angle - compassAngle;
+            if (targets[i].angleCorrected < 0) {
+                targets[i].angleCorrected += 360;  
+            } 
+        } else {
+            targets[i].angleCorrected = targets[i].angle;
+        }
+        updateLedId(i, targets[i].distance, targets[i].angleCorrected);
+    }
+    blinkLed();
+    // serialBT << "Led 0: " << targets[0].ledId << endl;
+}
+
+/********** Battery Management ***************/
+void Radar::readBatteryLevel() {
+    int batLevel = analogRead(BATLEV_PIN);
+}
+
+/********** Compass functions ***************/
 void Radar::compassInit() {
     compass.init();
     
     // get the compass calibration values from the EEPROM
     int xMin, xMax, yMin, yMax, zMin, zMax;
-    EEPROM.get(COMPASS_ADDR, xMin);
-    EEPROM.get(COMPASS_ADDR + sizeof(int), xMax);
-    EEPROM.get(COMPASS_ADDR + 2*sizeof(int), yMin);
-    EEPROM.get(COMPASS_ADDR + 3*sizeof(int), yMax);
-    EEPROM.get(COMPASS_ADDR + 4*sizeof(int), zMin);
-    EEPROM.get(COMPASS_ADDR + 5*sizeof(int), zMax);
+    EEPROM.get(COMPASS_ADDR_OFFSET, xMin);
+    EEPROM.get(COMPASS_ADDR_OFFSET + sizeof(int), xMax);
+    EEPROM.get(COMPASS_ADDR_OFFSET + 2*sizeof(int), yMin);
+    EEPROM.get(COMPASS_ADDR_OFFSET + 3*sizeof(int), yMax);
+    EEPROM.get(COMPASS_ADDR_OFFSET + 4*sizeof(int), zMin);
+    EEPROM.get(COMPASS_ADDR_OFFSET + 5*sizeof(int), zMax);
     
     compass.setCalibration(xMin, xMax, yMin, yMax, zMin, zMax);
 
     // Check the compass, recalibrate if needed
-    while(!compassCheck())
+    while(!compassCheck()) {
+        serialBT << "Compass check failed." << endl;
         calibrateCompass();
+    }
 }
 
 bool Radar::compassCheck() {
@@ -48,6 +175,9 @@ bool Radar::compassCheck() {
     int bin;
     unsigned long startTime = millis();
     int timeout_ms = 30000;
+
+    serialBT << "Checking compass calibration." << endl;
+    serialBT << "Please turn the compass in circles..." << endl;
 
     while(!done && (millis() - startTime < timeout_ms)) { 
         compass.read();
@@ -81,7 +211,8 @@ void Radar::calibrateCompass() {
     int t = 0;
     int c = 0;
     int x, y, z;
-
+    
+    serialBT << "Calibrating... Keep moving your sensor around." << endl;
     while(!done) {    
         // Read compass values
         compass.read();
@@ -138,39 +269,55 @@ void Radar::calibrateCompass() {
         calibrationData[2][0], calibrationData[2][1]);
 
     // save calibration parameters to EEPROM
-    EEPROM.get(COMPASS_ADDR, calibrationData[0][0]);
-    EEPROM.get(COMPASS_ADDR + sizeof(int), calibrationData[0][1]);
-    EEPROM.get(COMPASS_ADDR + 2*sizeof(int), calibrationData[1][0]);
-    EEPROM.get(COMPASS_ADDR + 3*sizeof(int), calibrationData[1][1]);
-    EEPROM.get(COMPASS_ADDR + 4*sizeof(int), calibrationData[2][0]);
-    EEPROM.get(COMPASS_ADDR + 5*sizeof(int), calibrationData[2][1]);
+    EEPROM.get(COMPASS_ADDR_OFFSET, calibrationData[0][0]);
+    EEPROM.get(COMPASS_ADDR_OFFSET + sizeof(int), calibrationData[0][1]);
+    EEPROM.get(COMPASS_ADDR_OFFSET + 2*sizeof(int), calibrationData[1][0]);
+    EEPROM.get(COMPASS_ADDR_OFFSET + 3*sizeof(int), calibrationData[1][1]);
+    EEPROM.get(COMPASS_ADDR_OFFSET + 4*sizeof(int), calibrationData[2][0]);
+    EEPROM.get(COMPASS_ADDR_OFFSET + 5*sizeof(int), calibrationData[2][1]);
     EEPROM.commit();
 }
 
-// TODO: attachInterrupt doesn't work
-void Radar::initialize() {
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-    // attachInterrupt(2, (void (*)())(&onButtonPress), 1);
-    // attachInterrupt(2, Radar::onButtonRelease, 1);
+/*********** LED functions ****************/
+void Radar::updateLedId(int targetId, int distance, int angle_) {
+    // angle must be in the range [0..360)
+    int ringId = distance2ring(distance);
+    int nleds = RINGS[ringId];
+    int ledIdAux = floor(0.5 + nleds * angle_ / 360);
+    if (ledIdAux == nleds) {
+        ledIdAux = 0;
+    }
+    targets[targetId].ledId = ledIdAux + OFFSET_RINGS[ringId];
+    // serialBT << "Ringid: " << ringId 
+    //          << " ledIdAux: " << ledIdAux 
+    //          << " ledId: " << targets[targetId].ledId << endl;
+}
 
-    pixels.begin();
-    
-    if (compassEnabled)
-        compassInit();
-
-    EEPROM.begin(2 * NTARGETS * sizeof(double));
-    loadTargets();
-
-    Serial.begin(9600);  // Serial is used for GPS
-
-#ifdef DEBUG
-    serialBT.begin("DragonBallRadar");
-    delay(5000);
-    serialBT << "Ready" << endl;
-#endif
-
-    waitGpsSignal();
-    
+void Radar::blinkLed() {  
+    if (millis() - last_blink_ms > BLINK_MS) {
+        if (ledStatus) {
+            for(int i=0; i<NPIXELS; i++) {
+                pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+                delay(1);
+            }
+            pixels.show();
+            delay(10);
+            ledStatus = false;
+        } else {
+            for (int i=0; i<NTARGETS; i++) {
+                if (showUnreachable && (targets[i].distance >= RING_MAX_DIST[0])) {
+                    pixels.setPixelColor(targets[i].ledId, pixels.Color(40, 0, 0));  // red
+                    delay(10);
+                } else {
+                    pixels.setPixelColor(targets[i].ledId, pixels.Color(0, 40, 0));  // green
+                    delay(10);
+                }
+            }
+            pixels.show();
+            ledStatus = true;
+        }
+        last_blink_ms = millis();
+    }
 }
 
 void Radar::successLeds() {
@@ -207,40 +354,6 @@ void Radar::failureLeds() {
     }
 }
 
-void Radar::waitGpsSignal() {
-    // We wait until the GPS returns a valid signal
-    mode = M_BLUETOOTH;
-    bool gpsFound = false;
-    unsigned long start_gps_ms = millis();
-    unsigned long last_led_change_ms = millis();
-    int ringId = NRINGS-1;
-
-    while(!gpsFound) {
-        // Timeout
-        if (millis() - start_gps_ms > GPS_TIMEOUT_MS) {
-            serialBT << "Timed out" << endl;
-            delay(100);
-            mode = M_NORMAL;
-            failureLeds();
-            return;
-        }
-        // led wave figure
-        if (millis() - last_led_change_ms > 500) {
-            serialBT << "ping" << endl;
-            waveLedSeq(ringId--, C_YELLOW);
-            if (ringId < 0)
-                ringId = NRINGS-1;
-            last_led_change_ms = millis();
-        }
-        gpsFound = updateGpsLocation();
-        delay(100);
-    }
-    successLeds();
-    serialBT << "MyPosition: " << MyPosition[0] << ", " << MyPosition[1] << endl;
-
-    mode = M_NORMAL;
-}
-
 void Radar::waveLedSeq(int ringId, uint32_t ledColor) {
     // set all pixels in the current ring
     for(int i=0; i<NPIXELS; i++) {
@@ -255,6 +368,83 @@ void Radar::waveLedSeq(int ringId, uint32_t ledColor) {
     pixels.show();
 }
 
+/*********** GPS functions ****************/
+bool Radar::gpsInit() {
+    Serial.begin(9600);
+    while (!Serial);
+    bool gpsReady = waitGpsSignal();
+    if (!gpsReady) {
+        // GPS timed out.
+        // Check if:
+        // Is anything being received from the GPS?
+        // How much satellites does the GPS see?
+        return false;
+    }
+    return true;
+}
+
+bool Radar::waitGpsSignal() {
+    // We wait until the GPS returns a valid signal
+    bool gpsFound = false;
+    unsigned long start_gps_ms = millis();
+    unsigned long last_led_change_ms = millis();
+    int ringId = NRINGS-1;
+
+    while(!gpsFound) {
+        // Timeout
+        if (millis() - start_gps_ms > GPS_TIMEOUT_MS) {
+            serialBT << "Timed out" << endl;
+            delay(100);
+            failureLeds();
+            return false;
+        }
+        // led wave figure
+        if (millis() - last_led_change_ms > 500) {
+            waveLedSeq(ringId--, C_YELLOW);
+            if (ringId < 0)
+                ringId = NRINGS-1;
+            last_led_change_ms = millis();
+        }
+        gpsFound = updateGpsLocation();
+        delay(1000);
+    }
+    successLeds();
+    serialBT << "MyPosition: " << MyPosition[0] << ", " << MyPosition[1] << endl;
+    return true;
+}
+
+bool Radar::updateGpsLocation() {
+    // read gps and update the position
+    
+    while (Serial.available() > 0) {
+        gps.encode(Serial.read());
+        yield();  // not sure if yield here will make it not work
+    }
+    serialBT << "LAT: " << gps.location.lat() << endl;
+    serialBT << "LON: " << gps.location.lng() << endl;
+    serialBT << "SAT: " << gps.satellites.value() << endl;
+    if (gps.location.isUpdated()) {
+        MyPosition[0] = gps.location.lat();
+        MyPosition[1] = gps.location.lng();
+        serialBT << "My Position: " << MyPosition[0] << ", " << MyPosition[1] << endl; 
+
+        // recalculate distances and angles to all targets
+        for (int i=0; i<NTARGETS; i++) {
+            targets[i].distance = (unsigned long)TinyGPSPlus::distanceBetween(
+                MyPosition[0], MyPosition[1], targets[i].latitude, targets[i].longitude);
+            targets[i].angle = TinyGPSPlus::courseTo(
+                MyPosition[0], MyPosition[1], targets[i].latitude, targets[i].longitude);
+        }
+
+        // serialBT << "Lat: " << _FLOAT(MyPosition[0], 6) 
+        //          << " Lon: " << _FLOAT(MyPosition[1], 6) 
+        //          << " Nsat: " << gps.satellites.value() << endl;
+        return true;
+    }
+    return false;
+}
+
+/*********** BT functions ****************/
 void Radar::bluetoothCommunication() {  
     // 1. initialize the bluetooth port
     mode = M_BLUETOOTH;
@@ -309,16 +499,26 @@ void Radar::bluetoothCommunication() {
     mode = M_NORMAL;
 }
 
-void IRAM_ATTR Radar::onButtonPress() {
-    buttonPressed = true;
-    displayON = true;
-    last_press_ms = millis();
+void Radar::decodeRX() {
+    char dataRx[] = "{\"numTargets\": 3,\"targets\":[[11,22],[33,44],[55,66]]}";
+    DynamicJsonDocument doc(1000);
+    DeserializationError error = deserializeJson(doc, dataRx);
+
+    // Test if parsing succeeds.
+    if (error) {
+        serialBT.print(F("deserializeJson() failed: "));
+        serialBT.println(error.c_str());
+        return;
+    }
+
+    int n = doc["numTargets"];
+    for (int i=0; i<n; i++) {
+        double lat = doc["targets"][i][0];
+        double lon = doc["targets"][i][1];
+    }
 }
 
-void IRAM_ATTR Radar::onButtonRelease() {
-    buttonPressed = false;
-}
-
+/*********** Targets functions ****************/
 void Radar::loadTargets() {
     // Loads the targets from the EEPROM
     int addr = 0;
@@ -367,55 +567,15 @@ void Radar::sendTargets() {
     serializeJson(doc, serialBT);
 }
 
-void Radar::decodeRX() {
-    char dataRx[] = "{\"numTargets\": 3,\"targets\":[[11,22],[33,44],[55,66]]}";
-    DynamicJsonDocument doc(1000);
-    DeserializationError error = deserializeJson(doc, dataRx);
-
-    // Test if parsing succeeds.
-    if (error) {
-        serialBT.print(F("deserializeJson() failed: "));
-        serialBT.println(error.c_str());
-        return;
-    }
-
-    int n = doc["numTargets"];
-    for (int i=0; i<n; i++) {
-        double lat = doc["targets"][i][0];
-        double lon = doc["targets"][i][1];
-    }
+/*********** Misc functions ****************/
+void IRAM_ATTR Radar::onButtonPress() {
+    buttonPressed = true;
+    displayON = true;
+    last_press_ms = millis();
 }
 
-void Radar::update(bool debug) {
-    if (!displayAlwaysON && !displayON) {
-        return;
-    }
-    if ((buttonPressed) && (millis() - last_press_ms > LONGPRESS_MS)) {
-        // We have pressed the button for longer than LONGPRESS_MS
-        bluetoothCommunication();
-    }
-    if ((!displayAlwaysON) &&  (millis() - last_press_ms > DISPLAY_MS)) {
-        displayON = false;
-        return;
-    }
-    
-    scan();
-    if (debug) {
-        serialBT << "My location: (" << _FLOAT(MyPosition[0], 6) << ", " 
-                                     << _FLOAT(MyPosition[1], 6) << ")" << endl;
-        for(int i=0; i<NTARGETS; i++) {
-            serialBT << "Target " << i << ":    (" 
-                     << _FLOAT(targets[i].latitude, 6) << ", " 
-                     << _FLOAT(targets[i].longitude, 6) << ")" << endl;
-            serialBT << "Distance: " << targets[i].distance 
-                     << " Angle: " << targets[i].angle 
-                     << " AngleCorr: " << targets[i].angleCorrected  
-                     << " LedId: " << targets[i].ledId << endl;
-        }
-        serialBT << "Compass Angle: " << compassAngle << endl;
-        serialBT << "************************" << endl;
-    }
-    //delay(100);
+void IRAM_ATTR Radar::onButtonRelease() {
+    buttonPressed = false;
 }
 
 int Radar::distance2ring(int distance) {
@@ -432,107 +592,7 @@ int Radar::distance2ring(int distance) {
     return NRINGS-1; 
 }
 
-void Radar::updateLedId(int targetId, int distance, int angle_) {
-    // angle must be in the range [0..360)
-    int ringId = distance2ring(distance);
-    int nleds = RINGS[ringId];
-    int ledIdAux = floor(0.5 + nleds * angle_ / 360);
-    if (ledIdAux == nleds) {
-        ledIdAux = 0;
-    }
-    targets[targetId].ledId = ledIdAux + OFFSET_RINGS[ringId];
-    // serialBT << "Ringid: " << ringId 
-    //          << " ledIdAux: " << ledIdAux 
-    //          << " ledId: " << targets[targetId].ledId << endl;
-}
-
-bool Radar::updateGpsLocation() {
-    // read gps and update the position
-    while (Serial.available() > 0) {
-        gps.encode(Serial.read());
-        yield();  // not sure if yield here will make it not work
-    }
-    if (gps.location.isUpdated()) {
-        MyPosition[0] = gps.location.lat();
-        MyPosition[1] = gps.location.lng();
-        serialBT << "My Position: " << MyPosition[0] << ", " << MyPosition[1] << endl; 
-
-        // recalculate distances and angles to all targets
-        for (int i=0; i<NTARGETS; i++) {
-            targets[i].distance = (unsigned long)TinyGPSPlus::distanceBetween(
-                MyPosition[0], MyPosition[1], targets[i].latitude, targets[i].longitude);
-            targets[i].angle = TinyGPSPlus::courseTo(
-                MyPosition[0], MyPosition[1], targets[i].latitude, targets[i].longitude);
-        }
-
-        // serialBT << "Lat: " << _FLOAT(MyPosition[0], 6) 
-        //          << " Lon: " << _FLOAT(MyPosition[1], 6) 
-        //          << " Nsat: " << gps.satellites.value() << endl;
-        return true;
-    }
-    return false;
-}
-
-void Radar::scan() {
-    // update gps if needed
-    if (millis() - last_gps_ms > GPS_MS) {
-        Radar::updateGpsLocation();
-        last_gps_ms = millis();
-    }
-    // update compassAngle
-    compass.read();
-    compassAngle = compass.getAzimuth();
-    // check that compassAngle is in the range [0, 360)
-    // otherwise set angle to 0 so radar acts in cardinal mode
-    if ((compassAngle < 0) || (compassAngle >= 360)) {
-        compassAngle = 0;
-        //serialBT << "Error reading Compass" << endl;
-    }
-    // update ledID for all targets
-    for (int i=0; i<NTARGETS; i++) {
-        if (compassEnabled) {
-            targets[i].angleCorrected = targets[i].angle - compassAngle;
-            if (targets[i].angleCorrected < 0) {
-                targets[i].angleCorrected += 360;  
-            } 
-        } else {
-            targets[i].angleCorrected = targets[i].angle;
-        }
-        updateLedId(i, targets[i].distance, targets[i].angleCorrected);
-    }
-    blinkLed();
-    // serialBT << "Led 0: " << targets[0].ledId << endl;
-}
-
-void Radar::blinkLed() {  
-    if (millis() - last_blink_ms > BLINK_MS) {
-        if (ledStatus) {
-            for(int i=0; i<NPIXELS; i++) {
-                pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-                delay(1);
-            }
-            pixels.show();
-            delay(10);
-            ledStatus = false;
-        } else {
-            for (int i=0; i<NTARGETS; i++) {
-                if (showUnreachable && (targets[i].distance >= RING_MAX_DIST[0])) {
-                    pixels.setPixelColor(targets[i].ledId, pixels.Color(40, 0, 0));  // red
-                    delay(10);
-                } else {
-                    pixels.setPixelColor(targets[i].ledId, pixels.Color(0, 40, 0));  // green
-                    delay(10);
-                }
-            }
-            pixels.show();
-            ledStatus = true;
-        }
-        last_blink_ms = millis();
-    }
-}
-
-
-/***************** TEST FUNCTIONS *********************/
+/***************** TEST FUNCTIONS **************/
 
 void Radar::testLeds() {
     for(int dist=450; dist>0; dist -= 100) { // 10
@@ -556,9 +616,36 @@ void Radar::testLeds() {
 }
 
 void Radar::testGps() {
-    while (Serial.available() > 0) {
-        serialBT.write(Serial.read());
+    Serial.begin(9600);
+    while (!Serial);
+    while(1) {
+        while (Serial.available() > 0) {
+            gps.encode(Serial.read());
+        }
+        serialBT << "LAT: " << gps.location.lat() << endl;
+        serialBT << "LON: " << gps.location.lng() << endl;
+        serialBT << "SAT: " << gps.satellites.value() << endl;
+
+        delay(800);
     }
+
+    // String text = "";
+    // char aa;
+    // while(1) {
+    //     bool bb = false;
+    //     while (Serial.available() > 0) {
+    //         aa = (char)Serial.read();
+    //         text += aa;
+    //         bb = gps.encode(aa);
+    //         if (bb) {
+    //             serialBT << text << endl;
+    //             delay(100);
+    //             text = "";
+    //         }
+    //     }
+    //     //serialBT << text << endl << endl;
+    //     delay(100);
+    // }
 }
 
 void Radar::testCompass() {

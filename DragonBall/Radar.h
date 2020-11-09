@@ -36,9 +36,23 @@
 #define M_NORMAL 1
 #define M_BLUETOOTH 2
 
-// TODO: Define EEPROM memory locations
-#define COMPASS_ADDR 20
+// TODO: Define EEPROM memory 
+// 00: CONFIG 0b abcd efgh
+//        h: debug mode
+//        g: gps enabled
+//        f: compass enabled
+// 01:  compass xMin
+// 02:  compass xMax
+// 03:  compass yMin
+// 04:  compass yMiax
+// 05:  compass zMin
+// 06:  compass zMax
 
+// 07: target1 lat
+// 08: target1 lon
+
+#define COMPASS_ADDR_OFFSET 01
+#define TARGET_ADDR_OFFSET 07
 
 typedef struct {
     double latitude;
@@ -52,7 +66,7 @@ typedef struct {
 class Radar {
     public:
         Radar();
-        void initialize();
+        void initialize(bool, bool, bool, bool);
         void update(bool debug);
 
         // test methods are public
@@ -91,8 +105,9 @@ class Radar {
         int distance2ring(int distance);
         void decodeRX();
         void waveLedSeq(int ringId, uint32_t ledColor);
-        void waitGpsSignal();
+        bool waitGpsSignal();
         void readBatteryLevel();
+        bool gpsInit();
 
 
         
@@ -108,7 +123,8 @@ class Radar {
         
         int compassAngle = 0;
         bool compassEnabled = false; // true: compass mode
-                                    // false: cardinal mode
+                                     // false: cardinal mode
+        bool gpsEnabled = false;
         
         bool showUnreachable = false; // true: unreachable targets shown in red
                                       // false: unreachable targets hidden
