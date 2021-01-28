@@ -3,22 +3,22 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <StandardCplusplus.h>
-#include <vector>
 
 class TrafficLight {
 public:
     TrafficLight();
-    const int LED_GREEN = 1;
-    const int LED_YELLOW = 2;
-    const int LED_RED = 3;
+    const byte LED_GREEN = 1;
+    const byte LED_YELLOW = 2;
+    const byte LED_RED = 3;
+    const byte MODE_AUTO = 1;
+    const byte MODE_MANUAL = 2;
     
-    void setMode(byte mode_);
     void turnON(byte led);
-    void turnOFF(byte led);
+    void turnOFF();
     void setTimer(byte led, word time_ms);
+    void setMode(byte runMode);
 
 private:
-    std::vector<int> instructions;
+
 };
 #endif

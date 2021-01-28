@@ -1,14 +1,17 @@
-// Author: Isaac Alonso
-//
-// Example of TrafficLight in manual mode
-// In manual mode the traffic light will be operated by giving commands.
-//
-// Available commands:
-//   - TrafficLight::turn_on(byte led, bool blink);
-
-//   led can be LED_GREEN, LED_YELLOW or LED_RED
-//   blink makes the led blink (default false)
-
+/* Author: Isaac Alonso
+*
+*  Example of TrafficLight in manual mode
+*  In manual mode the traffic light will be operated by giving commands.
+*
+*  List of commands:
+*    TrafficLight::turnOn(byte led);
+*    TrafficLight::turnOff();
+*
+*  List of constants:
+*    TrafficLight::LED_GREEN
+*    TrafficLight::LED_YELLOW
+*    TrafficLight::LED_RED
+*/
 
 #include <TrafficLight.h>
 
@@ -19,10 +22,10 @@ void setup() {
 }
 
 void loop() {
-    tf.turn_on(tf.LED_GREEN);
+    tf.turnOn(tf.LED_GREEN);
     delay(4000);
-    tf.turn_on(tf.LED_YELLOW, true);
+    tf.turnOn(tf.LED_YELLOW);
     delay(2000);
-    tf.turn_on(tf.LED_RED);
+    tf.turnOn(tf.LED_RED);
     delay(5000);
 }
