@@ -1,40 +1,38 @@
 #include <Wire.h>
 #include <EEPROM.h>
 
+
 /**** Pin definitions *******/
-#define P_TOUCH1 1
-#define P_TOUCH2 2
-#define P_TOUCH3 3
-#define P_TOUCH4 4
+#define P_SERVOX 3
+#define P_SERVOY 4
 /**** End of Pin definitions *******/
 
 /*** Instructions ***/
-#define I_NONE        0
-#define I_GET_STATE   1
-#define I_PING      254
-#define I_ERR       255
+#define I_NONE     0
+#define I_SET_X    1
+#define I_SET_Y    2
+#define I_PING   254
+#define I_ERR    255
 /*** End of Instructions ***/
 
 byte addr;
 byte instr = I_NONE;
-byte touch = 0;
+
+void helloWorld() {
+}
 
 void setup() {
-    addr = 6;
-    // addr = EEPROM.read(0);
+    //pinMode()
+    addr = EEPROM.read(0);
     Wire.begin(addr);
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
+
+    delay(1000);
+    helloWorld();
 }
 
 void loop() {
-}
-
-void read_touch() {
-    bitWrite(touch, 0, digitalRead(P_TOUCH1));
-    bitWrite(touch, 1, digitalRead(P_TOUCH2));
-    bitWrite(touch, 2, digitalRead(P_TOUCH3));
-    bitWrite(touch, 3, digitalRead(P_TOUCH4));
 }
 
 int16_t read16() {
@@ -46,19 +44,22 @@ int16_t read16() {
 
 void receiveEvent(int n) {
     instr = Wire.read();
+    switch(instr) {
+        case(I_SET_X):
+        break;
+        case(I_SET_Y):
+        break;
+    }
 }
 void requestEvent() {
     switch(instr) {
         case(I_PING):
             Wire.write(I_PING);
         break;
-        case(I_GET_STATE):
-            Wire.write(touch);
-        break;
 
         default:
             Wire.write(I_ERR);
         break;
     }
-    instr = I_NONE;  
+    instr = I_NONE;
 }

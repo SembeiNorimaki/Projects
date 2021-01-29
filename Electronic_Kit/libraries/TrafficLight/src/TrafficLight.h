@@ -19,6 +19,6 @@ public:
     void setMode(byte runMode);
 
 private:
-
+    byte addr = 2;
 };
 #endif

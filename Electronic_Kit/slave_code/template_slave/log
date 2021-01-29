@@ -1,0 +1,64 @@
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+template_slave2:16:6: error: redefinition of 'byte addr'
+ byte addr;
+      ^~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave.ino:16:6: note: 'byte addr' previously declared here
+ byte addr;
+      ^~~~
+template_slave2:17:6: error: redefinition of 'byte instr'
+ byte instr = I_NONE;
+      ^~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave.ino:17:6: note: 'byte instr' previously defined here
+ byte instr = I_NONE;
+      ^~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave2.ino: In function 'void setup()':
+template_slave2:19:6: error: redefinition of 'void setup()'
+ void setup() {
+      ^~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave.ino:19:6: note: 'void setup()' previously defined here
+ void setup() {
+      ^~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave2.ino: In function 'void loop()':
+template_slave2:27:6: error: redefinition of 'void loop()'
+ void loop() {
+      ^~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave.ino:27:6: note: 'void loop()' previously defined here
+ void loop() {
+      ^~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave2.ino: In function 'int16_t read16()':
+template_slave2:30:9: error: redefinition of 'int16_t read16()'
+ int16_t read16() {
+         ^~~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave.ino:30:9: note: 'int16_t read16()' previously defined here
+ int16_t read16() {
+         ^~~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave2.ino: In function 'void receiveEvent(int)':
+template_slave2:37:6: error: redefinition of 'void receiveEvent(int)'
+ void receiveEvent(int n) {
+      ^~~~~~~~~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave.ino:37:6: note: 'void receiveEvent(int)' previously defined here
+ void receiveEvent(int n) {
+      ^~~~~~~~~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave2.ino: In function 'void requestEvent()':
+template_slave2:43:6: error: redefinition of 'void requestEvent()'
+ void requestEvent() {
+      ^~~~~~~~~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/template_slave/template_slave.ino:43:6: note: 'void requestEvent()' previously defined here
+ void requestEvent() {
+      ^~~~~~~~~~~~
+exit status 1
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2056 bytes (6%) of program storage space. Maximum is 30720 bytes.
+Global variables use 196 bytes (9%) of dynamic memory, leaving 1852 bytes for local variables. Maximum is 2048 bytes.

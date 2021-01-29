@@ -7,7 +7,7 @@
 #include <EEPROM.h>
 
 /**** Pin definitions *******/
-#define P_PIXELS 3
+#define P_PIXELS 7
 /**** End of Pin definitions *******/
 
 /*** Instructions ***/
@@ -59,17 +59,18 @@ int16_t read16() {
 void receiveEvent(int n) {
     instr = Wire.read();
     switch(instr) {
-        case(I_SET_PX):
+        case(I_SET_PX): {
             // Sets pixel to RGB color
-            byte px_idx = Wire.read(); 
+            byte px = Wire.read(); 
             byte r = Wire.read();
             byte g = Wire.read();
             byte b = Wire.read();
             pixels.setPixelColor(px, pixels.Color(r, g, b));
             pixels.show();
             instr = I_NONE;
+        }
         break;
-        case(I_SET_MAT):
+        case(I_SET_MAT): {
             // Sets all pixels in the matrix
             byte px, r, g, b;
             for (int i=0; i<NUMPIXELS; i++) {
@@ -81,6 +82,7 @@ void receiveEvent(int n) {
             }
             pixels.show();
             instr = I_NONE;
+        }
         break;
     }
 }

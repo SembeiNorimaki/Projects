@@ -1,0 +1,386 @@
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+encoder7seg:38:16: error: declaration of 'numbers' as multidimensional array must have bounds for all dimensions except the first
+ byte numbers[][] = {
+                ^
+/home/isaac/Projects/Electronic_Kit/slave_code/encoder7seg/encoder7seg.ino: In function 'void displayDigit(byte, byte)':
+encoder7seg:120:36: error: request for member 'size' in 'numbers[((int)digit)]', which is of non-class type 'byte {aka unsigned char}'
+     for (int i=0; i<numbers[digit].size(); i++) {
+                                    ^~~~
+In file included from sketch/encoder7seg.ino.cpp:1:0:
+encoder7seg:122:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR0, bitRead(numbers[digit][i], 0));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+encoder7seg:123:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR1, bitRead(numbers[digit][i], 1));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+encoder7seg:124:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR2, bitRead(numbers[digit][i], 2));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+exit status 1
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 4204 bytes (13%) of program storage space. Maximum is 30720 bytes.
+Global variables use 229 bytes (11%) of dynamic memory, leaving 1819 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2572 bytes (8%) of program storage space. Maximum is 30720 bytes.
+Global variables use 204 bytes (9%) of dynamic memory, leaving 1844 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Sketch uses 4164 bytes (13%) of program storage space. Maximum is 30720 bytes.
+Global variables use 217 bytes (10%) of dynamic memory, leaving 1831 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2056 bytes (6%) of program storage space. Maximum is 30720 bytes.
+Global variables use 196 bytes (9%) of dynamic memory, leaving 1852 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+java.io.IOException: No valid code files found
+	at processing.app.Sketch.listSketchFiles(Sketch.java:117)
+	at processing.app.Sketch.<init>(Sketch.java:54)
+	at processing.app.Base.<init>(Base.java:418)
+	at processing.app.Base.main(Base.java:150)
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+In file included from sketch/touchx4.ino.cpp:1:0:
+/home/isaac/Projects/Electronic_Kit/slave_code/touchx4/touchx4.ino: In function 'void read_touch()':
+touchx4:35:34: error: 'P_TOUCH0' was not declared in this scope
+   bitWrite(touch, 0, digitalRead(P_TOUCH0));
+                                  ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:115:42: note: in definition of macro 'bitWrite'
+ #define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+                                          ^~~~~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/touchx4/touchx4.ino:35:34: note: suggested alternative: 'P_TOUCH1'
+   bitWrite(touch, 0, digitalRead(P_TOUCH0));
+                                  ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:115:42: note: in definition of macro 'bitWrite'
+ #define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+                                          ^~~~~~~~
+touchx4:36:42: error: too few arguments to function 'int digitalRead(uint8_t)'
+   bitWrite(touch, 1, digitalRead(P_TOUCH1));
+                                          ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:115:42: note: in definition of macro 'bitWrite'
+ #define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+                                          ^~~~~~~~
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:136:5: note: declared here
+ int digitalRead(uint8_t pin);
+     ^~~~~~~~~~~
+touchx4:37:42: error: too few arguments to function 'int digitalRead(uint8_t)'
+   bitWrite(touch, 2, digitalRead(P_TOUCH2));
+                                          ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:115:42: note: in definition of macro 'bitWrite'
+ #define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+                                          ^~~~~~~~
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:136:5: note: declared here
+ int digitalRead(uint8_t pin);
+     ^~~~~~~~~~~
+touchx4:38:42: error: too few arguments to function 'int digitalRead(uint8_t)'
+   bitWrite(touch, 3, digitalRead(P_TOUCH3));
+                                          ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:115:42: note: in definition of macro 'bitWrite'
+ #define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+                                          ^~~~~~~~
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:136:5: note: declared here
+ int digitalRead(uint8_t pin);
+     ^~~~~~~~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/touchx4/touchx4.ino: In function 'void requestEvent()':
+touchx4:57:10: error: 'I_GETSTATE' was not declared in this scope
+     case(I_GETSTATE):
+          ^~~~~~~~~~
+/home/isaac/Projects/Electronic_Kit/slave_code/touchx4/touchx4.ino:57:10: note: suggested alternative: 'I_GET_STATE'
+     case(I_GETSTATE):
+          ^~~~~~~~~~
+          I_GET_STATE
+exit status 1
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2588 bytes (8%) of program storage space. Maximum is 30720 bytes.
+Global variables use 204 bytes (9%) of dynamic memory, leaving 1844 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+encoder7seg:38:16: error: declaration of 'numbers' as multidimensional array must have bounds for all dimensions except the first
+ byte numbers[][] = {
+                ^
+/home/isaac/Projects/Electronic_Kit/slave_code/encoder7seg/encoder7seg.ino: In function 'void displayDigit(byte, byte)':
+encoder7seg:120:36: error: request for member 'size' in 'numbers[((int)digit)]', which is of non-class type 'byte {aka unsigned char}'
+     for (int i=0; i<numbers[digit].size(); i++) {
+                                    ^~~~
+In file included from sketch/encoder7seg.ino.cpp:1:0:
+encoder7seg:122:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR0, bitRead(numbers[digit][i], 0));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+encoder7seg:123:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR1, bitRead(numbers[digit][i], 1));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+encoder7seg:124:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR2, bitRead(numbers[digit][i], 2));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+exit status 1
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 4204 bytes (13%) of program storage space. Maximum is 30720 bytes.
+Global variables use 229 bytes (11%) of dynamic memory, leaving 1819 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Sketch uses 2572 bytes (8%) of program storage space. Maximum is 30720 bytes.
+Global variables use 204 bytes (9%) of dynamic memory, leaving 1844 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 4164 bytes (13%) of program storage space. Maximum is 30720 bytes.
+Global variables use 217 bytes (10%) of dynamic memory, leaving 1831 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2056 bytes (6%) of program storage space. Maximum is 30720 bytes.
+Global variables use 196 bytes (9%) of dynamic memory, leaving 1852 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+java.io.IOException: No valid code files found
+	at processing.app.Sketch.listSketchFiles(Sketch.java:117)
+	at processing.app.Sketch.<init>(Sketch.java:54)
+	at processing.app.Base.<init>(Base.java:418)
+	at processing.app.Base.main(Base.java:150)
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2036 bytes (6%) of program storage space. Maximum is 30720 bytes.
+Global variables use 196 bytes (9%) of dynamic memory, leaving 1852 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2588 bytes (8%) of program storage space. Maximum is 30720 bytes.
+Global variables use 204 bytes (9%) of dynamic memory, leaving 1844 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+/home/isaac/Projects/Electronic_Kit/slave_code/encoder7seg/encoder7seg.ino: In function 'void displayDigit(byte, byte)':
+encoder7seg:120:36: error: request for member 'size' in 'numbers[((int)digit)]', which is of non-class type 'byte {aka unsigned char}'
+     for (int i=0; i<numbers[digit].size(); i++) {
+                                    ^~~~
+In file included from sketch/encoder7seg.ino.cpp:1:0:
+encoder7seg:122:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR0, bitRead(numbers[digit][i], 0));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+encoder7seg:123:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR1, bitRead(numbers[digit][i], 1));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+encoder7seg:124:55: error: invalid types 'byte {aka unsigned char}[int]' for array subscript
+         digitalWrite(P_ADDR2, bitRead(numbers[digit][i], 2));
+                                                       ^
+/home/isaac/.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/Arduino.h:111:32: note: in definition of macro 'bitRead'
+ #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+                                ^~~~~
+exit status 1
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Sketch uses 4204 bytes (13%) of program storage space. Maximum is 30720 bytes.
+Global variables use 229 bytes (11%) of dynamic memory, leaving 1819 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 4164 bytes (13%) of program storage space. Maximum is 30720 bytes.
+Global variables use 217 bytes (10%) of dynamic memory, leaving 1831 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Picked up JAVA_TOOL_OPTIONS: 
+Picked up JAVA_TOOL_OPTIONS: 
+Picked up JAVA_TOOL_OPTIONS: 
+Picked up JAVA_TOOL_OPTIONS: 
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+/home/isaac/Projects/Electronic_Kit/slave_code/encoder7seg/encoder7seg.ino: In function 'void displayDigit(byte, byte)':
+encoder7seg:120:36: error: request for member 'size' in 'numbers[((int)digit)]', which is of non-class type 'byte [10] {aka unsigned char [10]}'
+     for (int i=0; i<numbers[digit].size(); i++) {
+                                    ^~~~
+exit status 1
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 4204 bytes (13%) of program storage space. Maximum is 30720 bytes.
+Global variables use 229 bytes (11%) of dynamic memory, leaving 1819 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2572 bytes (8%) of program storage space. Maximum is 30720 bytes.
+Global variables use 204 bytes (9%) of dynamic memory, leaving 1844 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Sketch uses 4164 bytes (13%) of program storage space. Maximum is 30720 bytes.
+Global variables use 217 bytes (10%) of dynamic memory, leaving 1831 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Sketch uses 2204 bytes (7%) of program storage space. Maximum is 30720 bytes.
+Global variables use 196 bytes (9%) of dynamic memory, leaving 1852 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2056 bytes (6%) of program storage space. Maximum is 30720 bytes.
+Global variables use 196 bytes (9%) of dynamic memory, leaving 1852 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+java.io.IOException: No valid code files found
+	at processing.app.Sketch.listSketchFiles(Sketch.java:117)
+	at processing.app.Sketch.<init>(Sketch.java:54)
+	at processing.app.Base.<init>(Base.java:418)
+	at processing.app.Base.main(Base.java:150)
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2036 bytes (6%) of program storage space. Maximum is 30720 bytes.
+Global variables use 196 bytes (9%) of dynamic memory, leaving 1852 bytes for local variables. Maximum is 2048 bytes.
+Picked up JAVA_TOOL_OPTIONS: 
+Loading configuration...
+Initializing packages...
+Preparing boards...
+Verifying...
+Warning: Board arduino:avr:ATmega328p-8 doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328P-8
+Warning: Board breadboard:avr:atmega328bb doesn't define a 'build.board' preference. Auto-set to: AVR_ATMEGA328BB
+Sketch uses 2588 bytes (8%) of program storage space. Maximum is 30720 bytes.
+Global variables use 204 bytes (9%) of dynamic memory, leaving 1844 bytes for local variables. Maximum is 2048 bytes.
